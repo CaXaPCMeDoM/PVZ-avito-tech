@@ -52,9 +52,21 @@ services:
     depends_on:
       - app
 
+  grafana:
+    image: grafana/grafana-enterprise
+    container_name: pvz-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks:
+      - backend
+    depends_on:
+      - prometheus
 networks:
   backend:
     driver: bridge
 
 volumes:
   pgdata:
+  grafana-data:
