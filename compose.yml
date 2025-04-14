@@ -1,0 +1,60 @@
+services:
+  app:
+    build: .
+    command: sh -c "sleep 10 && ./migrate-service && ./pvz-service"
+    ports:
+      - "${HTTP_PORT:-8080}:${HTTP_PORT:-8080}"
+      - "${METRICS_PORT:-9000}:${METRICS_PORT:-9000}"
+    environment:
+      - PG_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pvz-db-postgres:5432/${POSTGRES_DB}?sslmode=disable
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - PG_POOL_MAX=${PG_POOL_MAX}
+      - HTTP_PORT=${HTTP_PORT}
+      - LOG_LEVEL=${LOG_LEVEL}
+      - METRICS_ENABLED=${METRICS_ENABLED:-true}
+      - METRICS_PORT=${METRICS_PORT:-9000}
+    depends_on:
+      pvz-db-postgres:
+        condition: service_healthy
+    networks:
+      - backend
+
+  pvz-db-postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-db}
+      POSTGRES_USER: ${POSTGRES_USER:-caxap}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-1234}
+      POSTGRES_HOST_AUTH_METHOD: md5
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: [
+        "CMD-SHELL",
+        "PGPASSWORD=$${POSTGRES_PASSWORD} pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"
+      ]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 30s
+
+  prometheus:
+    image: prom/prometheus
+    container_name: pvz-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - backend
+    depends_on:
+      - app
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  pgdata:
