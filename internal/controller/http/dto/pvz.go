@@ -9,7 +9,7 @@ import (
 
 type PVZInfo struct {
 	PVZ        PVZWithReceptions `json:"pvz"`
-	Receptions []ReceptionGroup  `json:"receptions"`
+	Receptions []*ReceptionGroup `json:"receptions"`
 }
 
 type PVZWithReceptions struct {
@@ -31,10 +31,10 @@ type ReceptionWithProducts struct {
 }
 
 type ProductDTO struct {
-	ID          uuid.UUID   `json:"id"`
-	DateTime    time.Time   `json:"dateTime"`
-	Type        entity.City `json:"type"`
-	ReceptionID uuid.UUID   `json:"receptionId"`
+	ID          uuid.UUID          `json:"id"`
+	DateTime    time.Time          `json:"dateTime"`
+	Type        entity.ProductType `json:"type"`
+	ReceptionID uuid.UUID          `json:"receptionId"`
 }
 
 type CreatePVZRequest struct {

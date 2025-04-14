@@ -63,11 +63,35 @@ func (r *PVZRepo) GetPVZWithReceptions(
 	ctx context.Context,
 	filter dto.ReceptionFilter,
 ) (*[]dto.PVZInfo, error) {
+	subquery := r.Builder.
+		Select("id", "city", "created_at").
+		From("pvz")
+
+	if !filter.StartDate.IsZero() || !filter.EndDate.IsZero() {
+		existsQuery := "EXISTS (SELECT 1 FROM receptions r WHERE r.pvz_id = pvz.id"
+		var existsArgs []interface{}
+		if !filter.StartDate.IsZero() {
+			existsQuery += " AND r.created_at >= ?"
+			existsArgs = append(existsArgs, filter.StartDate)
+		}
+		if !filter.EndDate.IsZero() {
+			existsQuery += " AND r.created_at <= ?"
+			existsArgs = append(existsArgs, filter.EndDate)
+		}
+		existsQuery += ")"
+		subquery = subquery.Where(sq.Expr(existsQuery, existsArgs...))
+	}
+
+	subquery = subquery.
+		OrderBy("created_at DESC").
+		Limit(uint64(filter.Limit)).
+		Offset(uint64((filter.Page - 1) * filter.Limit))
+
 	baseQuery := r.Builder.
 		Select(
-			"pvz.id AS pvz_id",
-			"pvz.city AS pvz_city",
-			"pvz.created_at AS pvz_created_at",
+			"paginated_pvz.id AS pvz_id",
+			"paginated_pvz.city AS pvz_city",
+			"paginated_pvz.created_at AS pvz_created_at",
 			"r.id AS reception_id",
 			"r.created_at AS reception_created_at",
 			"r.status AS reception_status",
@@ -75,28 +99,30 @@ func (r *PVZRepo) GetPVZWithReceptions(
 			"p.type AS product_type",
 			"p.created_at AS product_created_at",
 		).
-		From("pvz").
-		LeftJoin("receptions r ON pvz.id = r.pvz_id").
-		LeftJoin("products p ON r.id = p.reception_id").
-		Where(sq.And{
-			sq.Or{
-				sq.GtOrEq{"r.created_at": filter.StartDate},
-				sq.Eq{"r.created_at": nil},
-			},
-			sq.Or{
-				sq.LtOrEq{"r.created_at": filter.EndDate},
-				sq.Eq{"r.created_at": nil},
-			},
-		}).
-		OrderBy("pvz.created_at DESC", "r.created_at DESC", "p.created_at DESC").
-		Limit(uint64(filter.Limit)).
-		Offset(uint64((filter.Page - 1) * filter.Limit)).
-		PlaceholderFormat(sq.Dollar)
+		FromSelect(subquery, "paginated_pvz").
+		LeftJoin("receptions r ON paginated_pvz.id = r.pvz_id").
+		LeftJoin("products p ON r.id = p.reception_id")
+
+	var conditions sq.And
+	if !filter.StartDate.IsZero() {
+		conditions = append(conditions, sq.GtOrEq{"r.created_at": filter.StartDate})
+	}
+	if !filter.EndDate.IsZero() {
+		conditions = append(conditions, sq.LtOrEq{"r.created_at": filter.EndDate})
+	}
+	if len(conditions) > 0 {
+		baseQuery = baseQuery.Where(conditions)
+	}
+
+	baseQuery = baseQuery.
+		OrderBy("paginated_pvz.created_at DESC", "r.created_at DESC", "p.created_at DESC")
 
 	query, args, err := baseQuery.ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build query: %w", err)
 	}
+
+	fmt.Printf("Executing query:\n%s\nArgs: %+v\n", query, args)
 
 	rows, err := r.Pool.Query(ctx, query, args...)
 	if err != nil {
@@ -135,6 +161,14 @@ func (r *PVZRepo) GetPVZWithReceptions(
 			return nil, fmt.Errorf("scan failed: %w", err)
 		}
 
+		fmt.Printf(
+			"PVZ: %s, Reception: %s, Product: %s, Type: %s\n",
+			pvzID,
+			receptionID.UUID,
+			productID.UUID,
+			productType.String,
+		)
+
 		if _, exists := pvzMap[pvzID]; !exists {
 			pvzMap[pvzID] = &dto.PVZInfo{
 				PVZ: dto.PVZWithReceptions{
@@ -142,14 +176,14 @@ func (r *PVZRepo) GetPVZWithReceptions(
 					City:             pvzCity,
 					RegistrationDate: pvzCreatedAt,
 				},
-				Receptions: []dto.ReceptionGroup{},
+				Receptions: []*dto.ReceptionGroup{},
 			}
 		}
 
 		if receptionID.Valid {
 			receptionKey := receptionID.UUID
 			if _, exists := receptionMap[receptionKey]; !exists {
-				receptionMap[receptionKey] = &dto.ReceptionGroup{
+				newReception := &dto.ReceptionGroup{
 					Reception: dto.ReceptionWithProducts{
 						ID:       receptionID.UUID,
 						DateTime: receptionDate.Time,
@@ -158,30 +192,35 @@ func (r *PVZRepo) GetPVZWithReceptions(
 					},
 					Products: []dto.ProductDTO{},
 				}
+				receptionMap[receptionKey] = newReception
 				pvzMap[pvzID].Receptions = append(
 					pvzMap[pvzID].Receptions,
-					*receptionMap[receptionKey],
+					newReception,
 				)
 			}
 
-			if productID.Valid {
+			if productID.Valid && productType.Valid {
 				product := dto.ProductDTO{
 					ID:          productID.UUID,
 					DateTime:    productDate.Time,
-					Type:        entity.City(productType.String),
+					Type:        entity.ProductType(productType.String),
 					ReceptionID: receptionID.UUID,
 				}
 				receptionMap[receptionKey].Products = append(
 					receptionMap[receptionKey].Products,
 					product,
 				)
+				fmt.Printf("Added product: %+v\n", product)
 			}
 		}
 	}
 
 	result := make([]dto.PVZInfo, 0, len(pvzMap))
 	for _, pvz := range pvzMap {
-		result = append(result, *pvz)
+		result = append(result, dto.PVZInfo{
+			PVZ:        pvz.PVZ,
+			Receptions: pvz.Receptions,
+		})
 	}
 
 	return &result, rows.Err()
