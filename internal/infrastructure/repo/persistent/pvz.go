@@ -122,8 +122,6 @@ func (r *PVZRepo) GetPVZWithReceptions(
 		return nil, fmt.Errorf("failed to build query: %w", err)
 	}
 
-	fmt.Printf("Executing query:\n%s\nArgs: %+v\n", query, args)
-
 	rows, err := r.Pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("query execution failed: %w", err)
@@ -160,14 +158,6 @@ func (r *PVZRepo) GetPVZWithReceptions(
 		if err != nil {
 			return nil, fmt.Errorf("scan failed: %w", err)
 		}
-
-		fmt.Printf(
-			"PVZ: %s, Reception: %s, Product: %s, Type: %s\n",
-			pvzID,
-			receptionID.UUID,
-			productID.UUID,
-			productType.String,
-		)
 
 		if _, exists := pvzMap[pvzID]; !exists {
 			pvzMap[pvzID] = &dto.PVZInfo{
