@@ -1,8 +1,8 @@
-### В идеале запустить:
+### Запустить опционально:
 ```
  docker-compose build --no-cache
 ```
-### А потом: 
+### Запустить: 
 ```
 docker-compose up --build -d 
 ```
