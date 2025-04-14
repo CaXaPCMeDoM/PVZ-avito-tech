@@ -83,7 +83,6 @@ func (r *ReceptionRepo) CloseActiveReception(ctx context.Context, pvzID uuid.UUI
 	return &reception, nil
 }
 
-// TODO проверить
 func (r *ReceptionRepo) CloseActiveReceptionWithTx(
 	ctx context.Context,
 	tx pgx.Tx,

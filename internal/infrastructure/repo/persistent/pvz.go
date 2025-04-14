@@ -135,7 +135,6 @@ func (r *PVZRepo) GetPVZWithReceptions(
 			return nil, fmt.Errorf("scan failed: %w", err)
 		}
 
-		// Обработка PVZ
 		if _, exists := pvzMap[pvzID]; !exists {
 			pvzMap[pvzID] = &dto.PVZInfo{
 				PVZ: dto.PVZWithReceptions{
@@ -147,7 +146,6 @@ func (r *PVZRepo) GetPVZWithReceptions(
 			}
 		}
 
-		// Обработка Reception
 		if receptionID.Valid {
 			receptionKey := receptionID.UUID
 			if _, exists := receptionMap[receptionKey]; !exists {
@@ -166,12 +164,11 @@ func (r *PVZRepo) GetPVZWithReceptions(
 				)
 			}
 
-			// Обработка Product
 			if productID.Valid {
 				product := dto.ProductDTO{
 					ID:          productID.UUID,
 					DateTime:    productDate.Time,
-					Type:        entity.City(productType.String), // Возможна ошибка типа!
+					Type:        entity.City(productType.String),
 					ReceptionID: receptionID.UUID,
 				}
 				receptionMap[receptionKey].Products = append(

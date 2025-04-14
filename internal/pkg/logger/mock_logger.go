@@ -5,7 +5,6 @@ import (
 	"strings"
 )
 
-// MockLogger реализует Interface для тестирования
 type MockLogger struct {
 	DebugLogs []string
 	InfoLogs  []string
@@ -44,7 +43,6 @@ func (m *MockLogger) Fatal(message interface{}, args ...interface{}) {
 	m.FatalLogs = append(m.FatalLogs, formatMessage(message, args...))
 }
 
-// Вспомогательная функция для форматирования сообщений
 func formatMessage(message interface{}, args ...interface{}) string {
 	switch msg := message.(type) {
 	case string:
