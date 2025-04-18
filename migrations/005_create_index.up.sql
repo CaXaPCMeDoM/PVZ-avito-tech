@@ -7,3 +7,7 @@ CREATE INDEX idx_products_reception_id_created ON products(reception_id, created
 CREATE UNIQUE INDEX idx_unique_active_reception
     ON receptions (pvz_id)
     WHERE status = 'in_progress';
+
+CREATE INDEX CONCURRENTLY ON pvz (created_at);
+CREATE INDEX CONCURRENTLY ON receptions (pvz_id, created_at);
+CREATE INDEX CONCURRENTLY ON products (reception_id, created_at);
