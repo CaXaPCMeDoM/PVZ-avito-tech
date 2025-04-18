@@ -29,7 +29,7 @@ type (
 		WriteTimeout    time.Duration `env:"HTTP_WRITE_TIMEOUT" env-default:"30s"`
 		IdleTimeout     time.Duration `env:"HTTP_IDLE_TIMEOUT" env-default:"60s"`
 		MaxHeaderBytes  int           `env:"HTTP_MAX_HEADER_BYTES" env-default:"1048576"`
-		Mode            string        `env:"GIN_MODE" env-default:"release"`
+		Mode            string        `env:"GIN_MODE" env-required:"true"`
 		ShutdownTimeout time.Duration `env:"HTTP_SHUTDOWN_TIMEOUT" env-default:"5s"`
 	}
 

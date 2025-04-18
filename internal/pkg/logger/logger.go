@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
@@ -88,6 +87,6 @@ func (l *Logger) msg(level string, message interface{}, args ...interface{}) {
 	case error:
 		l.log(msg.Error(), args...)
 	default:
-		l.log(fmt.Sprintf("%s message %v has unknown type %v", level, message, msg))
+		l.log("%s message %v has unknown type %v", level, message, msg)
 	}
 }

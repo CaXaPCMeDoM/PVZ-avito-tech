@@ -21,7 +21,7 @@ func (r ReceptionsStatus) IsValidReceptionsStatus() bool {
 
 func (r ReceptionsStatus) ValidateReceptionsStatus() error {
 	if !r.IsValidReceptionsStatus() {
-		return errors.New("invalid city")
+		return errors.New("invalid reception status")
 	}
 	return nil
 }

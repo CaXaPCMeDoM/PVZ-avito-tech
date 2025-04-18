@@ -23,7 +23,7 @@ func (r ProductType) IsValidProductType() bool {
 
 func (r ProductType) ValidateProductType() error {
 	if !r.IsValidProductType() {
-		return errors.New("invalid city")
+		return errors.New("invalid product type")
 	}
 	return nil
 }
